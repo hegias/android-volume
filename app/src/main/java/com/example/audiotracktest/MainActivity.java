@@ -33,12 +33,14 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 
 
         AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+
+       // setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
+         audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
 
 //        AudioFocusRequest response = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
 //                .setAudioAttributes(new AudioAttributes.Builder()
-//                        .setUsage(AudioAttributes.USAGE_MEDIA)
-//                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+//                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+//                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
 //                        .build())
 //                .setAcceptsDelayedFocusGain(true)
 //                .setWillPauseWhenDucked(true)
@@ -47,10 +49,9 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 //        audioManager.requestAudioFocus(response);
 
         Log.d("1234", "stream control BEFORE "+ getVolumeControlStream());
-        // setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
+
         Log.d("1234", "stream control AFTER "+ getVolumeControlStream());
 
-        // audioManager.setMode(AudioManager.MODE_RINGTONE);
         Log.d("1234", "volume fixed "+ audioManager.isVolumeFixed());
         Log.d("1234", "mode "+ audioManager.getMode());
 
@@ -130,8 +131,6 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
     @Override
     protected void onResume() {
         super.onResume();
-        setVolumeControlStream(AudioManager.STREAM_MUSIC);
-
     }
 
     public static byte[] convertStreamToByteArray(InputStream is) throws IOException {
