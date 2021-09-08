@@ -1,2 +1,3 @@
+include ':audiotestmodule'
 include ':app'
 rootProject.name = "Audiotrack test"
