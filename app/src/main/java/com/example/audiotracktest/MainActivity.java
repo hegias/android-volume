@@ -33,7 +33,7 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 
 
         AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-        audioManager.setMode(AudioManager.MODE_RINGTONE);
+        //audioManager.setMode(AudioManager.MODE_RINGTONE);
 
         AudioFocusRequest response = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                 .setAudioAttributes(new AudioAttributes.Builder()
@@ -46,6 +46,9 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                 .build();
         audioManager.requestAudioFocus(response);
 
+        Log.d("1234", "stream control BEFORE "+ getVolumeControlStream());
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        Log.d("1234", "stream control AFTER "+ getVolumeControlStream());
 
         // audioManager.setMode(AudioManager.MODE_RINGTONE);
         Log.d("1234", "volume fixed "+ audioManager.isVolumeFixed());
@@ -90,7 +93,10 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                         }
 
                         audioTrack.play();
+                        Log.d("1234", "mode "+ audioManager.getMode());
                         audioTrack.write(music1, 0, music1.length);
+
+
                     }
                 }).start();
 
@@ -140,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 
     @Override
     public void onAudioFocusChange(int focusChange){
-
+        Log.d("1234", "audiofocus change!");
     }
 
 }
