@@ -33,21 +33,21 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 
 
         AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-        //audioManager.setMode(AudioManager.MODE_RINGTONE);
+        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
 
-        AudioFocusRequest response = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-                .setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build())
-                .setAcceptsDelayedFocusGain(true)
-                .setWillPauseWhenDucked(true)
-                .setOnAudioFocusChangeListener(this)
-                .build();
-        audioManager.requestAudioFocus(response);
+//        AudioFocusRequest response = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+//                .setAudioAttributes(new AudioAttributes.Builder()
+//                        .setUsage(AudioAttributes.USAGE_MEDIA)
+//                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+//                        .build())
+//                .setAcceptsDelayedFocusGain(true)
+//                .setWillPauseWhenDucked(true)
+//                .setOnAudioFocusChangeListener(this)
+//                .build();
+//        audioManager.requestAudioFocus(response);
 
         Log.d("1234", "stream control BEFORE "+ getVolumeControlStream());
-        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        // setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
         Log.d("1234", "stream control AFTER "+ getVolumeControlStream());
 
         // audioManager.setMode(AudioManager.MODE_RINGTONE);
@@ -67,8 +67,8 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                         //  Log.d("1234", "minnBuffsize is "+minBuffSize);
                         AudioTrack audioTrack = new AudioTrack.Builder()
                                 .setAudioAttributes(new AudioAttributes.Builder()
-                                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                                         .build())
                                 .setAudioFormat(new AudioFormat.Builder()
                                         .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
@@ -112,7 +112,8 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
         buttonPlus.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Code here executes on main thread after user presses button
-                audioManager.adjustVolume(AudioManager.ADJUST_RAISE, 0);
+           //     audioManager.adjustVolume(AudioManager.ADJUST_RAISE, 0);
+                audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 5, 0);
             }
         });
 
@@ -120,7 +121,8 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
         buttonMinus.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Code here executes on main thread after user presses button
-                audioManager.adjustVolume(AudioManager.ADJUST_LOWER, 0);
+            //    audioManager.adjustVolume(AudioManager.ADJUST_LOWER, 0);
+                audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 1, 0);
             }
         });
     }
