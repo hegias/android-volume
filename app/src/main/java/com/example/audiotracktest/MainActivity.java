@@ -1,9 +1,15 @@
 package com.example.audiotracktest;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
+import android.Manifest;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.database.ContentObserver;
 import android.media.AudioAttributes;
 import android.media.AudioFocusRequest;
@@ -11,6 +17,8 @@ import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.media.session.MediaController;
+import android.media.session.MediaSessionManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -23,6 +31,7 @@ import android.widget.Button;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements AudioManager.OnAudioFocusChangeListener {
 
@@ -59,20 +68,8 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
         getApplicationContext().getContentResolver().registerContentObserver(Settings.System.CONTENT_URI, true, observer);
 
         AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-
        // setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
          audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-
-//        AudioFocusRequest response = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-//                .setAudioAttributes(new AudioAttributes.Builder()
-//                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-//                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-//                        .build())
-//                .setAcceptsDelayedFocusGain(true)
-//                .setWillPauseWhenDucked(true)
-//                .setOnAudioFocusChangeListener(this)
-//                .build();
-//        audioManager.requestAudioFocus(response);
 
         Log.d("1234", "stream control BEFORE "+ getVolumeControlStream());
 
@@ -94,8 +91,10 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                         //  Log.d("1234", "minnBuffsize is "+minBuffSize);
                         AudioTrack audioTrack = new AudioTrack.Builder()
                                 .setAudioAttributes(new AudioAttributes.Builder()
-                                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                  //      .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                                   //     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                                         .build())
                                 .setAudioFormat(new AudioFormat.Builder()
                                         .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
@@ -106,22 +105,28 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                                 //   .setBufferSizeInBytes(minBuffSize)
                                 .build();
                         // InputStream in1=getResources().openRawResource(R.raw.greenday);
-                        InputStream in1=getResources().openRawResource(R.raw.piano);
-
-
-
-                        byte[] music1 = null;
+                        AssetManager am = getApplicationContext().getAssets();
                         try {
-                            music1= new byte[in1.available()];
-                            music1=convertStreamToByteArray(in1);
-                            in1.close();
+                            InputStream in1 = am.open("piano.wav");
+                            //InputStream in1=getResources().openRawResource(R.raw.piano);
+                            byte[] music1 = null;
+                            try {
+                                music1= new byte[in1.available()];
+                                music1=convertStreamToByteArray(in1);
+                                in1.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+
+                            audioTrack.play();
+                            Log.d("1234", "mode "+ audioManager.getMode());
+                            audioTrack.write(music1, 0, music1.length);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
 
-                        audioTrack.play();
-                        Log.d("1234", "mode "+ audioManager.getMode());
-                        audioTrack.write(music1, 0, music1.length);
+
+
 
 
                     }
@@ -133,14 +138,14 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
             }
         });
 
-
-
         final Button buttonPlus = findViewById(R.id.button_plus);
         buttonPlus.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Code here executes on main thread after user presses button
            //     audioManager.adjustVolume(AudioManager.ADJUST_RAISE, 0);
                 audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 5, 0);
+             //   audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 5, 0);
+
             }
         });
 
@@ -150,8 +155,37 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                 // Code here executes on main thread after user presses button
             //    audioManager.adjustVolume(AudioManager.ADJUST_LOWER, 0);
                 audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 1, 0);
+            //    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 1, 0);
+
             }
         });
+
+        ActivityCompat.requestPermissions(this, new String [] {android.Manifest.permission.MEDIA_CONTENT_CONTROL, Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE}, 100);
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case 100:
+                if(grantResults.length>0  &&
+                        grantResults[0] == PackageManager.PERMISSION_GRANTED){
+                    Log.d("1234", "media control permission granted");
+                    MediaSessionManager mediaSessionManager = ((MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE));
+                    ComponentName myNotificationListenerComponent = new ComponentName(this, MediaControlHelperNotificationListenerService.class);
+                    List<MediaController> activeSessions = mediaSessionManager.getActiveSessions(myNotificationListenerComponent);
+                    for(int i = 0;  i<activeSessions.size()-1; i++){
+                        MediaController currentController = activeSessions.get(i);
+                        Log.d("1234", "found session id " + i + " is " + currentController.getPackageName());
+                    }
+                } else {
+                    Log.d("1234", "media control permission NOT GRANTED");
+                }
+                return;
+            default:
+                Log.d("1234", "what are u even doing here");
+        }
     }
 
     @Override
