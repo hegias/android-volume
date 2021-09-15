@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements AudioManager.OnAudioFocusChangeListener {
+public class MainActivity extends AppCompatActivity{
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,8 +71,8 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 
         AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
        // setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
-        //audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-        audioManager.setMode(AudioManager.MODE_NORMAL);
+        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+      //  audioManager.setMode(AudioManager.MODE_NORMAL);
 
         Log.d("1234", "stream control BEFORE "+ getVolumeControlStream());
 
@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 
 
 
-/*        final Button buttonPlay = findViewById(R.id.button_play);
+        final Button buttonPlay = findViewById(R.id.button_play);
         buttonPlay.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Code here executes on main thread after user presses button
@@ -94,9 +94,9 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                         //  Log.d("1234", "minnBuffsize is "+minBuffSize);
                         AudioTrack audioTrack = new AudioTrack.Builder()
                                 .setAudioAttributes(new AudioAttributes.Builder()
-                                  //      .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
                                         .setUsage(AudioAttributes.USAGE_MEDIA)
-                                   //     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                                         .build())
                                 .setAudioFormat(new AudioFormat.Builder()
@@ -161,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
             //    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 1, 0);
 
             }
-        });*/
+        });
 
         final Button buttonPermissions = findViewById(R.id.button_permissions);
         buttonPermissions.setOnClickListener(new View.OnClickListener() {
@@ -202,11 +202,12 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                 for(int i = 0;  i<activeSessions.size(); i++){
                     MediaController currentController = activeSessions.get(i);
                     Log.d("1234", "found session id " + i + " is " + currentController.getPackageName());
+                    currentController.setVolumeTo(0, 0);
                 }
             }
         });
-
     }
+/*
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -231,6 +232,7 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                 Log.d("1234", "what are u even doing here");
         }
     }
+*/
 
     @Override
     protected void onResume() {
@@ -248,11 +250,11 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 
         return baos.toByteArray(); // be sure to close InputStream in calling function
     }
-
+/*
     @Override
     public void onAudioFocusChange(int focusChange){
         Log.d("1234", "audiofocus change!");
-    }
+    }*/
 
 }
 
