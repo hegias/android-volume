@@ -18,7 +18,9 @@ import android.media.AudioFocusRequest;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.media.audiofx.Equalizer;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
 import android.net.Uri;
@@ -36,6 +38,8 @@ import java.io.InputStream;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity{
+
+    public int createdAudioSessionId ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,8 +75,8 @@ public class MainActivity extends AppCompatActivity{
 
         AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
        // setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
-        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-      //  audioManager.setMode(AudioManager.MODE_NORMAL);
+       // audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+        audioManager.setMode(AudioManager.MODE_NORMAL);
 
         Log.d("1234", "stream control BEFORE "+ getVolumeControlStream());
 
@@ -90,23 +94,27 @@ public class MainActivity extends AppCompatActivity{
                 // Code here executes on main thread after user presses button
                 new Thread(new Runnable() {
                     public void run() {
+                        int generatedAudioSessionId = audioManager.generateAudioSessionId();
+                        Log.d("1234", "generated audio session id "+ generatedAudioSessionId);
                         int minBuffSize = AudioTrack.getMinBufferSize(44100, 4, 2);
                         //  Log.d("1234", "minnBuffsize is "+minBuffSize);
                         AudioTrack audioTrack = new AudioTrack.Builder()
                                 .setAudioAttributes(new AudioAttributes.Builder()
-                                        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                                    //    .setUsage(AudioAttributes.USAGE_MEDIA)
-                                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                                     //   .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                     //   .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                                    //    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                                         .build())
                                 .setAudioFormat(new AudioFormat.Builder()
                                         .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                                         .setSampleRate(16000)
                                         .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
                                         .build())
+                                .setSessionId(generatedAudioSessionId)
                                 .setTransferMode(AudioTrack.MODE_STREAM)
                                 //   .setBufferSizeInBytes(minBuffSize)
                                 .build();
+                        createdAudioSessionId = audioTrack.getAudioSessionId();
                         // InputStream in1=getResources().openRawResource(R.raw.greenday);
                         AssetManager am = getApplicationContext().getAssets();
                         try {
@@ -127,20 +135,28 @@ public class MainActivity extends AppCompatActivity{
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
-
-
-
-
-
                     }
                 }).start();
-
-
-
-
             }
         });
 
+        final Button buttonPlay2 = findViewById(R.id.button_play2);
+        buttonPlay2.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                MediaPlayer mediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.greenday);
+//                mediaPlayer.setAudioAttributes(
+//                        new AudioAttributes.Builder()
+//                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+//                                .setUsage(AudioAttributes.USAGE_MEDIA)
+//                                .build()
+//                );
+
+                mediaPlayer.start();
+                createdAudioSessionId = mediaPlayer.getAudioSessionId();
+                Log.d("1234", "id of session created is " + createdAudioSessionId);
+            }
+        });
         final Button buttonPlus = findViewById(R.id.button_plus);
         buttonPlus.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -202,8 +218,21 @@ public class MainActivity extends AppCompatActivity{
                 for(int i = 0;  i<activeSessions.size(); i++){
                     MediaController currentController = activeSessions.get(i);
                     Log.d("1234", "found session id " + i + " is " + currentController.getPackageName());
-                    currentController.setVolumeTo(0, 0);
+                //    currentController.setVolumeTo(0, 0);
                 }
+                Equalizer eq = new Equalizer(1, createdAudioSessionId);
+                eq.setEnabled(true);
+                short numBands = eq.getNumberOfBands();
+                short minLevel = eq.getBandLevelRange()[0];
+                short maxLevel = eq.getBandLevelRange()[1];
+                Log.d("1234", "audio session id" + createdAudioSessionId + " number of bands is " + numBands + " min level is " + minLevel + " max level is " + maxLevel);
+                for (short i = 0; i<numBands; i++){
+                    Log.d("1234", "setting  " + maxLevel + " to " + i);
+                    eq.setBandLevel(i, maxLevel);
+                }
+
+
+
             }
         });
     }
