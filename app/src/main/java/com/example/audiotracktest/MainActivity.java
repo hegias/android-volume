@@ -4,10 +4,12 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.database.ContentObserver;
@@ -69,7 +71,8 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 
         AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
        // setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
-         audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+        //audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+        audioManager.setMode(AudioManager.MODE_NORMAL);
 
         Log.d("1234", "stream control BEFORE "+ getVolumeControlStream());
 
@@ -81,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
 
 
 
-        final Button buttonPlay = findViewById(R.id.button_play);
+/*        final Button buttonPlay = findViewById(R.id.button_play);
         buttonPlay.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 // Code here executes on main thread after user presses button
@@ -158,9 +161,50 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
             //    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 1, 0);
 
             }
+        });*/
+
+        final Button buttonPermissions = findViewById(R.id.button_permissions);
+        buttonPermissions.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if (ContextCompat.checkSelfPermission(
+                        getApplicationContext(), Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE) ==
+                        PackageManager.PERMISSION_GRANTED) {
+                    // You can use the API that requires the permission.
+                    Log.d("1234", "PERMISSIONS OK");
+                } else {
+                    Log.d("1234", "PERMISSIONS missing");
+                    Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+                    startActivity(intent);
+                }
+                // ComponentName cn = new ComponentName(getApplicationContext(), NotificationListener.class);
+               // String flat = Settings.Secure.getString(getApplicationContext().getContentResolver(), "enabled_notification_listeners");
+               // final boolean enabled = flat != null && flat.contains(cn.flattenToString());
+
+            }
         });
 
-        ActivityCompat.requestPermissions(this, new String [] {android.Manifest.permission.MEDIA_CONTENT_CONTROL, Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE}, 100);
+        final Button buttonSessions = findViewById(R.id.button_sessions);
+        buttonSessions.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d("1234", "sessions button ");
+
+                ComponentName myNotificationListenerComponent = new ComponentName(getApplicationContext(), NotificationListener.class);
+                MediaSessionManager mediaSessionManager = ((MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE));
+                List<MediaController> activeSessions = mediaSessionManager.getActiveSessions(myNotificationListenerComponent);
+                Log.d("1234", "sessions " +activeSessions);
+
+                for(int i = 0;  i<activeSessions.size(); i++){
+                    MediaController currentController = activeSessions.get(i);
+                    Log.d("1234", "found session id " + i + " is " + currentController.getPackageName());
+                }
+            }
+        });
 
     }
 
@@ -173,7 +217,7 @@ public class MainActivity extends AppCompatActivity implements AudioManager.OnAu
                         grantResults[0] == PackageManager.PERMISSION_GRANTED){
                     Log.d("1234", "media control permission granted");
                     MediaSessionManager mediaSessionManager = ((MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE));
-                    ComponentName myNotificationListenerComponent = new ComponentName(this, MediaControlHelperNotificationListenerService.class);
+                    ComponentName myNotificationListenerComponent = new ComponentName(this, NotificationListener.class);
                     List<MediaController> activeSessions = mediaSessionManager.getActiveSessions(myNotificationListenerComponent);
                     for(int i = 0;  i<activeSessions.size()-1; i++){
                         MediaController currentController = activeSessions.get(i);

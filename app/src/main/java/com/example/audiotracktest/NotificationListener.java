@@ -14,20 +14,28 @@ public class NotificationListener extends NotificationListenerService {
     }
 
     @Override
-    public void onNotificationPosted (StatusBarNotification sbn) {
-        if(sbn != null && sbn.getNotification() != null) {
-            Log.i("notifcation", sbn.getNotification().toString());
-            String title = sbn.getNotification().extras.getCharSequence(Notification.EXTRA_TITLE).toString();
-            String text = sbn.getNotification().extras.getCharSequence(Notification.EXTRA_TEXT).toString();
-            Log.i("notifcation", "title: " + title + " text: " + text);
+    public void onListenerConnected() {
+        super.onListenerConnected();
+        Log.d("1234", "NOTIFICATION LISTENER CONNECTED!!!");
+    }
 
-            // Qui il vostro codice
+    /*
+        @Override
+        public void onNotificationPosted (StatusBarNotification sbn) {
+            if(sbn != null && sbn.getNotification() != null) {
+                Log.i("notifcation", sbn.getNotification().toString());
+                String title = sbn.getNotification().extras.getCharSequence(Notification.EXTRA_TITLE).toString();
+                String text = sbn.getNotification().extras.getCharSequence(Notification.EXTRA_TEXT).toString();
+                Log.i("notifcation", "title: " + title + " text: " + text);
+
+                // Qui il vostro codice
+            }
         }
-    }
-    @Override
-    public void onNotificationRemoved (StatusBarNotification sbn) {
-        Log.i("notifcation", "onNotificationRemoved");
-    }
+        @Override
+        public void onNotificationRemoved (StatusBarNotification sbn) {
+            Log.i("notifcation", "onNotificationRemoved");
+        }
+        */
     public Boolean VerifyNotificationPermission() {
         String theList = android.provider.Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
         String[] theListList = theList.split(":");
