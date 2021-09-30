@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+/commonlib/build
+/mobilertc/build
+/sample/build
+/example2/build
