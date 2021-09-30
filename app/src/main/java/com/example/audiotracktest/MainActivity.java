@@ -1,28 +1,28 @@
 package com.example.audiotracktest;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.DialogFragment;
 
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.database.ContentObserver;
 import android.media.AudioAttributes;
-import android.media.AudioFocusRequest;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.MediaPlayer;
-import android.media.MediaRecorder;
 import android.media.audiofx.Equalizer;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -32,12 +32,30 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
+import com.google.android.material.textfield.TextInputEditText;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
+import us.zoom.sdk.JoinMeetingOptions;
+import us.zoom.sdk.JoinMeetingParams;
+import us.zoom.sdk.MeetingService;
+import us.zoom.sdk.StartMeetingOptions;
+import us.zoom.sdk.ZoomApiError;
+import us.zoom.sdk.ZoomAuthenticationError;
+import us.zoom.sdk.ZoomSDK;
+import us.zoom.sdk.ZoomSDKAuthenticationListener;
+import us.zoom.sdk.ZoomSDKInitParams;
+import us.zoom.sdk.ZoomSDKInitializeListener;
+
 public class MainActivity extends AppCompatActivity{
+
+    static {
+        System.loadLibrary("audio-module-c");
+    }
+    public native String myFun();
 
     public int createdAudioSessionId ;
 
@@ -45,6 +63,124 @@ public class MainActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ConnectivityManager cs = (ConnectivityManager) getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+        initializeSdk(this);
+    }
+
+    private ZoomSDKAuthenticationListener authListener = new ZoomSDKAuthenticationListener() {
+        /**
+         * This callback is invoked when a result from the SDK's request to the auth server is
+         * received.
+         */
+        @Override
+        public void onZoomSDKLoginResult(long result) {
+            if (result == ZoomAuthenticationError.ZOOM_AUTH_ERROR_SUCCESS) {
+                // Once we verify that the request was successful, we may start the meeting
+                startMeeting(MainActivity.this);
+            }
+            Log.d("1234", "zoom auth listener result is " + result);
+
+        }
+
+        @Override
+        public void onZoomSDKLogoutResult(long l) {}@Override
+        public void onZoomIdentityExpired() {}@Override
+        public void onZoomAuthIdentityExpired() {}
+    };
+
+    public void initializeSdk(Context context) {
+        Log.d("1234", "zoom init sdk");
+
+        ZoomSDK sdk = ZoomSDK.getInstance();
+        // TODO: For the purpose of this demo app, we are storing the credentials in the client app itself. However, you should not use hard-coded values for your key/secret in your app in production.
+        ZoomSDKInitParams params = new ZoomSDKInitParams();
+        params.appKey = "TRPFojeSU1TI1ao5U2xWEwXdqsLxDVvcLQB2"; // TODO: Retrieve your SDK key and enter it here
+        params.appSecret = "c3DZ10L0jqtcG2Tscln2At8MR5BRcKNvt796"; // TODO: Retrieve your SDK secret and enter it here
+        params.domain = "zoom.us";
+        params.enableLog = true;
+        // TODO: Add functionality to this listener (e.g. logs for debugging)
+        ZoomSDKInitializeListener listener = new ZoomSDKInitializeListener() {
+            /**
+             * @param errorCode {@link us.zoom.sdk.ZoomError#ZOOM_ERROR_SUCCESS} if the SDK has been initialized successfully.
+             */
+            @Override
+            public void onZoomSDKInitializeResult(int errorCode, int internalErrorCode) {
+                Log.d("1234", "zoom init sdk result errorcode " + errorCode + " internal error code " + internalErrorCode );
+            }
+
+            @Override
+            public void onZoomAuthIdentityExpired() { }
+        };
+        sdk.initialize(context, listener, params);
+        Log.d("1234", "sdk is " + sdk);
+
+    }
+
+    private void joinMeeting(Context context, String meetingNumber, String password) {
+        MeetingService meetingService = ZoomSDK.getInstance().getMeetingService();
+        Log.d("1234", "meeting service is " + meetingService);
+        JoinMeetingOptions options = new JoinMeetingOptions();
+        JoinMeetingParams params = new JoinMeetingParams();
+        params.displayName = ""; // TODO: Enter your name
+        params.meetingNo = meetingNumber;
+        params.password = password;
+        meetingService.joinMeetingWithParams(context, params, options);
+    }
+
+    // 1. Write the login function
+
+    private void login(String username, String password) {
+        int result = ZoomSDK.getInstance().loginWithZoom(username, password);
+        if (result == ZoomApiError.ZOOM_API_ERROR_SUCCESS) {
+
+            // 2. After request is executed, listen for the authentication result prior to starting a meeting
+            ZoomSDK.getInstance().addAuthenticationListener(authListener);
+        }
+    }
+    // 3. Write the startMeeting function
+    private void startMeeting(Context context) {
+        ZoomSDK sdk = ZoomSDK.getInstance();
+        if (sdk.isLoggedIn()) {
+            MeetingService meetingService = sdk.getMeetingService();
+            StartMeetingOptions options = new StartMeetingOptions();
+            meetingService.startInstantMeeting(context, options);
+        }
+    }
+
+    // 1. Create a dialog where a participant can enter the meeting information to join a meeting.
+    private void createJoinMeetingDialog() {
+        new AlertDialog.Builder(this).setView(R.layout.dialog_join_meeting).setPositiveButton("Join", new DialogInterface.OnClickListener() {@Override
+        public void onClick(DialogInterface dialogInterface, int i) {
+            AlertDialog dialog = (AlertDialog) dialogInterface;
+            TextInputEditText numberInput = dialog.findViewById(R.id.meeting_no_input);
+            TextInputEditText passwordInput = dialog.findViewById(R.id.password_input);
+            if (numberInput != null && numberInput.getText() != null && passwordInput != null && passwordInput.getText() != null) {
+                String meetingNumber = numberInput.getText().toString();
+                String password = passwordInput.getText().toString();
+                if (meetingNumber.trim().length() > 0 && password.trim().length() > 0) {
+                    joinMeeting(MainActivity.this, meetingNumber, password);
+                }
+            }
+        }
+        }).show();
+    }
+
+    // 2. Create a dialog where a host can enter Zoom email and password to login and start an instant meeting.
+    private void createLoginDialog() {
+        new AlertDialog.Builder(this).setView(R.layout.dialog_login).setPositiveButton("Log in", new DialogInterface.OnClickListener() {@Override
+        public void onClick(DialogInterface dialogInterface, int i) {
+            AlertDialog dialog = (AlertDialog) dialogInterface;
+            TextInputEditText emailInput = dialog.findViewById(R.id.email_input);
+            TextInputEditText passwordInput = dialog.findViewById(R.id.pw_input);
+            if (emailInput != null && emailInput.getText() != null && passwordInput != null && passwordInput.getText() != null) {
+                String email = emailInput.getText().toString();
+                String password = passwordInput.getText().toString();
+                if (email.trim().length() > 0 && password.trim().length() > 0) {
+                    login(email, password);
+                }
+            }
+        }
+        }).show();
     }
 
     @Override
@@ -86,6 +222,7 @@ public class MainActivity extends AppCompatActivity{
         Log.d("1234", "mode "+ audioManager.getMode());
 
 
+        Log.d("1234", "FROM CPP "+ myFun());
 
 
         final Button buttonPlay = findViewById(R.id.button_play);
@@ -230,9 +367,32 @@ public class MainActivity extends AppCompatActivity{
                     Log.d("1234", "setting  " + maxLevel + " to " + i);
                     eq.setBandLevel(i, maxLevel);
                 }
+                
+            }
+        });
 
+        final Button buttonJoin = findViewById(R.id.join_button);
+        buttonJoin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                DialogFragment joinDialogFragment = new joinDialogFragment();
+//                joinDialogFragment.show(getSupportFragmentManager(), "joinDialogFragment");
+             //   createJoinMeetingDialog();
+                joinMeeting(getApplicationContext(), "6916574948", "rwZnL2");
+            }
+        });
 
-
+        final Button buttonLogin = findViewById(R.id.login_button);
+        buttonLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                DialogFragment loginDialogFragment = new loginDialogFragment();
+//                loginDialogFragment.show(getSupportFragmentManager(), "loginDialogFragment");
+                if (ZoomSDK.getInstance().isLoggedIn()) {
+                    startMeeting(MainActivity.this);
+                } else {
+                    createLoginDialog();
+                }
             }
         });
     }
