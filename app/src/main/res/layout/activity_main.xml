@@ -8,78 +8,85 @@
 
     <Button
         android:id="@+id/button_plus"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="161dp"
-        android:layout_marginTop="50dp"
-        android:layout_marginEnd="162dp"
+        android:layout_width="50dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="64dp"
+        android:layout_marginEnd="32dp"
         android:text="+"
         android:visibility="visible"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/button_minus"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:layout_marginStart="161dp"
-        android:layout_marginTop="19dp"
-        android:layout_marginEnd="162dp"
+        android:layout_width="50dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="32dp"
         android:text="-"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/button_plus" />
 
     <Button
         android:id="@+id/button_play"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="157dp"
-        android:layout_marginTop="31dp"
-        android:layout_marginEnd="166dp"
-        android:layout_marginBottom="112dp"
-        android:text="play"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
+        android:layout_width="145dp"
+        android:layout_height="82dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="128dp"
+        android:text="Play Audiotrack"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_minus" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <Button
         android:id="@+id/button_play2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="157dp"
-        android:layout_marginTop="31dp"
-        android:layout_marginEnd="166dp"
-        android:layout_marginBottom="112dp"
-        android:text="play 2"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        android:layout_width="145dp"
+        android:layout_height="82dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
+        android:text="Play Mediaplayer"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_minus"
-        app:layout_constraintVertical_bias="0.682" />
+        app:layout_constraintTop_toBottomOf="@+id/button_play" />
 
     <Button
         android:id="@+id/button_permissions"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="100dp"
+        android:layout_width="145dp"
+        android:layout_height="41dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="60dp"
         android:text="PERMISSIONS"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_play" />
+        app:layout_constraintTop_toBottomOf="@+id/button_play2" />
 
     <Button
         android:id="@+id/button_sessions"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="100dp"
-        android:layout_marginEnd="20dp"
+        android:layout_width="145dp"
+        android:layout_height="41dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
         android:text="LIST SESSIONS"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_play" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/button_permissions" />
+
+    <ToggleButton
+        android:id="@+id/musicMode_toggle"
+        android:layout_width="70dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="32dp"
+        android:textOff="Music\nMode"
+        android:textOn="Music\nMode"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ToggleButton
+        android:id="@+id/callMode_toggle"
+        android:layout_width="70dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginTop="32dp"
+        android:textOff="CALL\nMODE"
+        android:textOn="CALL\nMODE"
+        app:layout_constraintStart_toEndOf="@+id/musicMode_toggle"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

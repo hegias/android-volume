@@ -1,9 +1,7 @@
 package com.example.audiotracktest;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
@@ -14,12 +12,10 @@ import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.database.ContentObserver;
 import android.media.AudioAttributes;
-import android.media.AudioFocusRequest;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.MediaPlayer;
-import android.media.MediaRecorder;
 import android.media.audiofx.Equalizer;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
@@ -31,6 +27,8 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.ToggleButton;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -51,6 +49,7 @@ public class MainActivity extends AppCompatActivity{
     protected void onStart() {
         super.onStart();
 
+        // SETUP OBSERVER FOR VOLUME CHANGES
         ContentObserver observer = new ContentObserver(new Handler(Looper.myLooper())) {
             @Override
             public void onChange(boolean selfChange, @Nullable Uri uri) {
@@ -85,7 +84,25 @@ public class MainActivity extends AppCompatActivity{
         Log.d("1234", "volume fixed "+ audioManager.isVolumeFixed());
         Log.d("1234", "mode "+ audioManager.getMode());
 
+        final ToggleButton musicModeToggle = findViewById(R.id.musicMode_toggle);
+        final ToggleButton callModeToggle = findViewById(R.id.callMode_toggle);
 
+        musicModeToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    callModeToggle.setChecked(false);
+                }
+            }
+        });
+        callModeToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    musicModeToggle.setChecked(false);
+                }
+            }
+        });
 
 
         final Button buttonPlay = findViewById(R.id.button_play);
