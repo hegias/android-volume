@@ -15,7 +15,6 @@ import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.media.MediaPlayer;
 import android.media.audiofx.Equalizer;
 import android.media.session.MediaController;
 import android.media.session.MediaSessionManager;
@@ -23,7 +22,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
@@ -32,6 +30,8 @@ import android.widget.CompoundButton;
 import android.widget.ToggleButton;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -40,10 +40,10 @@ public class MainActivity extends AppCompatActivity{
 
     public int createdAudioSessionId ;
     public AudioTrack audioTrack = null;
-    public MediaPlayer mediaPlayer = null;
     public int targetStreamForVolumeChange = 3;
     public Boolean isPlaying = false;
     public Thread playThread;
+    public Button buttonPlayAudioTrack;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -98,7 +98,6 @@ public class MainActivity extends AppCompatActivity{
                 if (isChecked) {
                     callModeToggle.setChecked(false);
                     audioTrack = createAudioTrack(AudioAttributes.USAGE_MEDIA, AudioAttributes.CONTENT_TYPE_MUSIC);
-                    mediaPlayer = createMediaPlayer(AudioAttributes.USAGE_MEDIA, AudioAttributes.CONTENT_TYPE_MUSIC);
                     audioManager.setMode(AudioManager.MODE_NORMAL);
                     targetStreamForVolumeChange = AudioManager.STREAM_MUSIC;
                 }
@@ -110,7 +109,6 @@ public class MainActivity extends AppCompatActivity{
                 if (isChecked) {
                     musicModeToggle.setChecked(false);
                     audioTrack = createAudioTrack(AudioAttributes.USAGE_VOICE_COMMUNICATION, AudioAttributes.CONTENT_TYPE_SPEECH);
-                    mediaPlayer = createMediaPlayer(AudioAttributes.USAGE_VOICE_COMMUNICATION, AudioAttributes.CONTENT_TYPE_SPEECH);
                     audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
                     targetStreamForVolumeChange = AudioManager.STREAM_VOICE_CALL;
                 }
@@ -118,8 +116,8 @@ public class MainActivity extends AppCompatActivity{
         });
 
 
-        final Button buttonPlay = findViewById(R.id.button_play);
-        buttonPlay.setOnClickListener(new View.OnClickListener() {
+        buttonPlayAudioTrack = findViewById(R.id.button_play);
+        buttonPlayAudioTrack.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 if(audioTrack == null) {
                     return;
@@ -128,7 +126,7 @@ public class MainActivity extends AppCompatActivity{
                     audioTrack.stop();
                     isPlaying = false;
                     playThread.interrupt();
-                    buttonPlay.setText("PLAY\nAUDIOTRACK");
+                    buttonPlayAudioTrack.setText("PLAY\nAUDIOTRACK");
                     return;
                 }
                 playThread = new Thread(new Runnable() {
@@ -152,28 +150,23 @@ public class MainActivity extends AppCompatActivity{
                         }
                     }
                 });
-                playThread.run();
-                buttonPlay.setText("STOP\nAUDIOTRACK");
+                playThread.start();
+                buttonPlayAudioTrack.setText("STOP\nAUDIOTRACK");
             }
         });
 
-        final Button buttonPlay2 = findViewById(R.id.button_play2);
-        buttonPlay2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(mediaPlayer == null) {
-                    return;
-                }
-                mediaPlayer.start();
-            }
-        });
         final Button buttonPlus = findViewById(R.id.button_plus);
         buttonPlus.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 //   audioManager.adjustVolume(AudioManager.ADJUST_RAISE, 0);
                 //   audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 5, 0);
                 int currentVolume = audioManager.getStreamVolume(targetStreamForVolumeChange);
-                int finalVolume = ( currentVolume + 1 ) % audioManager.getStreamMaxVolume(targetStreamForVolumeChange);
+                int finalVolume;
+                if (currentVolume < audioManager.getStreamMaxVolume(targetStreamForVolumeChange)) {
+                    finalVolume = currentVolume + 1;
+                } else {
+                    finalVolume = audioManager.getStreamVolume(targetStreamForVolumeChange);
+                }
                 audioManager.setStreamVolume(targetStreamForVolumeChange, finalVolume, 0);
 
             }
@@ -195,89 +188,8 @@ public class MainActivity extends AppCompatActivity{
             }
         });
 
-        final Button buttonPermissions = findViewById(R.id.button_permissions);
-        buttonPermissions.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-                if (ContextCompat.checkSelfPermission(
-                        getApplicationContext(), Manifest.permission.BIND_NOTIFICATION_LISTENER_SERVICE) ==
-                        PackageManager.PERMISSION_GRANTED) {
-                    // You can use the API that requires the permission.
-                    Log.d("1234", "PERMISSIONS OK");
-                } else {
-                    Log.d("1234", "PERMISSIONS missing");
-                    Intent intent = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-                    startActivity(intent);
-                }
-                // ComponentName cn = new ComponentName(getApplicationContext(), NotificationListener.class);
-               // String flat = Settings.Secure.getString(getApplicationContext().getContentResolver(), "enabled_notification_listeners");
-               // final boolean enabled = flat != null && flat.contains(cn.flattenToString());
-
-            }
-        });
-
-        final Button buttonSessions = findViewById(R.id.button_sessions);
-        buttonSessions.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d("1234", "sessions button ");
-
-                ComponentName myNotificationListenerComponent = new ComponentName(getApplicationContext(), NotificationListener.class);
-                MediaSessionManager mediaSessionManager = ((MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE));
-                List<MediaController> activeSessions = mediaSessionManager.getActiveSessions(myNotificationListenerComponent);
-                Log.d("1234", "sessions " +activeSessions);
-
-                for(int i = 0;  i<activeSessions.size(); i++){
-                    MediaController currentController = activeSessions.get(i);
-                    Log.d("1234", "found session id " + i + " is " + currentController.getPackageName());
-                //    currentController.setVolumeTo(0, 0);
-                }
-                Equalizer eq = new Equalizer(1, createdAudioSessionId);
-                eq.setEnabled(true);
-                short numBands = eq.getNumberOfBands();
-                short minLevel = eq.getBandLevelRange()[0];
-                short maxLevel = eq.getBandLevelRange()[1];
-                Log.d("1234", "audio session id" + createdAudioSessionId + " number of bands is " + numBands + " min level is " + minLevel + " max level is " + maxLevel);
-                for (short i = 0; i<numBands; i++){
-                    Log.d("1234", "setting  " + maxLevel + " to " + i);
-                    eq.setBandLevel(i, maxLevel);
-                }
-
-
-
-            }
-        });
     }
-/*
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case 100:
-                if(grantResults.length>0  &&
-                        grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                    Log.d("1234", "media control permission granted");
-                    MediaSessionManager mediaSessionManager = ((MediaSessionManager) getSystemService(Context.MEDIA_SESSION_SERVICE));
-                    ComponentName myNotificationListenerComponent = new ComponentName(this, NotificationListener.class);
-                    List<MediaController> activeSessions = mediaSessionManager.getActiveSessions(myNotificationListenerComponent);
-                    for(int i = 0;  i<activeSessions.size()-1; i++){
-                        MediaController currentController = activeSessions.get(i);
-                        Log.d("1234", "found session id " + i + " is " + currentController.getPackageName());
-                    }
-                } else {
-                    Log.d("1234", "media control permission NOT GRANTED");
-                }
-                return;
-            default:
-                Log.d("1234", "what are u even doing here");
-        }
-    }
-*/
 
     @Override
     protected void onResume() {
@@ -300,24 +212,6 @@ public class MainActivity extends AppCompatActivity{
                 .setTransferMode(AudioTrack.MODE_STREAM)
                 //   .setBufferSizeInBytes(minBuffSize)
                 .build();
-
-    }
-
-    public MediaPlayer createMediaPlayer(int usage, int contentType){
-        Uri uri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.greenday);
-        try {
-            MediaPlayer myMediaPlayer = new MediaPlayer();
-            myMediaPlayer.setDataSource(getApplicationContext(), uri);
-            myMediaPlayer.setAudioAttributes( new AudioAttributes.Builder()
-                .setUsage(usage)
-                .setContentType(contentType)
-                .build());
-            return myMediaPlayer;
-        } catch (IOException e) {
-            Log.d("1234", "error while creating media player");
-            e.printStackTrace();
-            return null;
-        }
     }
 
     public static byte[] convertStreamToByteArray(InputStream is) throws IOException {

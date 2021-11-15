@@ -37,36 +37,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
-        android:id="@+id/button_play2"
-        android:layout_width="145dp"
-        android:layout_height="82dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="32dp"
-        android:text="Play Mediaplayer"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_play" />
-
-    <Button
-        android:id="@+id/button_permissions"
-        android:layout_width="145dp"
-        android:layout_height="41dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="60dp"
-        android:text="PERMISSIONS"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_play2" />
-
-    <Button
-        android:id="@+id/button_sessions"
-        android:layout_width="145dp"
-        android:layout_height="41dp"
-        android:layout_marginStart="32dp"
-        android:layout_marginTop="32dp"
-        android:text="LIST SESSIONS"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_permissions" />
-
     <ToggleButton
         android:id="@+id/musicMode_toggle"
         android:layout_width="70dp"
