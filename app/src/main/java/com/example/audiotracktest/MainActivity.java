@@ -23,6 +23,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
@@ -38,7 +39,11 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity{
 
     public int createdAudioSessionId ;
-
+    public AudioTrack audioTrack = null;
+    public MediaPlayer mediaPlayer = null;
+    public int targetStreamForVolumeChange = 3;
+    public Boolean isPlaying = false;
+    public Thread playThread;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -92,6 +97,10 @@ public class MainActivity extends AppCompatActivity{
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     callModeToggle.setChecked(false);
+                    audioTrack = createAudioTrack(AudioAttributes.USAGE_MEDIA, AudioAttributes.CONTENT_TYPE_MUSIC);
+                    mediaPlayer = createMediaPlayer(AudioAttributes.USAGE_MEDIA, AudioAttributes.CONTENT_TYPE_MUSIC);
+                    audioManager.setMode(AudioManager.MODE_NORMAL);
+                    targetStreamForVolumeChange = AudioManager.STREAM_MUSIC;
                 }
             }
         });
@@ -100,6 +109,10 @@ public class MainActivity extends AppCompatActivity{
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     musicModeToggle.setChecked(false);
+                    audioTrack = createAudioTrack(AudioAttributes.USAGE_VOICE_COMMUNICATION, AudioAttributes.CONTENT_TYPE_SPEECH);
+                    mediaPlayer = createMediaPlayer(AudioAttributes.USAGE_VOICE_COMMUNICATION, AudioAttributes.CONTENT_TYPE_SPEECH);
+                    audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+                    targetStreamForVolumeChange = AudioManager.STREAM_VOICE_CALL;
                 }
             }
         });
@@ -108,35 +121,21 @@ public class MainActivity extends AppCompatActivity{
         final Button buttonPlay = findViewById(R.id.button_play);
         buttonPlay.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                // Code here executes on main thread after user presses button
-                new Thread(new Runnable() {
+                if(audioTrack == null) {
+                    return;
+                }
+                if(isPlaying) {
+                    audioTrack.stop();
+                    isPlaying = false;
+                    playThread.interrupt();
+                    buttonPlay.setText("PLAY\nAUDIOTRACK");
+                    return;
+                }
+                playThread = new Thread(new Runnable() {
                     public void run() {
-                        int generatedAudioSessionId = audioManager.generateAudioSessionId();
-                        Log.d("1234", "generated audio session id "+ generatedAudioSessionId);
-                        int minBuffSize = AudioTrack.getMinBufferSize(44100, 4, 2);
-                        //  Log.d("1234", "minnBuffsize is "+minBuffSize);
-                        AudioTrack audioTrack = new AudioTrack.Builder()
-                                .setAudioAttributes(new AudioAttributes.Builder()
-                                     //   .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                                    //    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                                        .build())
-                                .setAudioFormat(new AudioFormat.Builder()
-                                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                                        .setSampleRate(16000)
-                                        .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
-                                        .build())
-                                .setSessionId(generatedAudioSessionId)
-                                .setTransferMode(AudioTrack.MODE_STREAM)
-                                //   .setBufferSizeInBytes(minBuffSize)
-                                .build();
-                        createdAudioSessionId = audioTrack.getAudioSessionId();
-                        // InputStream in1=getResources().openRawResource(R.raw.greenday);
                         AssetManager am = getApplicationContext().getAssets();
                         try {
                             InputStream in1 = am.open("piano.wav");
-                            //InputStream in1=getResources().openRawResource(R.raw.piano);
                             byte[] music1 = null;
                             try {
                                 music1= new byte[in1.available()];
@@ -145,15 +144,16 @@ public class MainActivity extends AppCompatActivity{
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-
+                            isPlaying = true;
                             audioTrack.play();
-                            Log.d("1234", "mode "+ audioManager.getMode());
                             audioTrack.write(music1, 0, music1.length);
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
                     }
-                }).start();
+                });
+                playThread.run();
+                buttonPlay.setText("STOP\nAUDIOTRACK");
             }
         });
 
@@ -161,26 +161,20 @@ public class MainActivity extends AppCompatActivity{
         buttonPlay2.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                MediaPlayer mediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.greenday);
-//                mediaPlayer.setAudioAttributes(
-//                        new AudioAttributes.Builder()
-//                                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-//                                .setUsage(AudioAttributes.USAGE_MEDIA)
-//                                .build()
-//                );
-
+                if(mediaPlayer == null) {
+                    return;
+                }
                 mediaPlayer.start();
-                createdAudioSessionId = mediaPlayer.getAudioSessionId();
-                Log.d("1234", "id of session created is " + createdAudioSessionId);
             }
         });
         final Button buttonPlus = findViewById(R.id.button_plus);
         buttonPlus.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                // Code here executes on main thread after user presses button
-           //     audioManager.adjustVolume(AudioManager.ADJUST_RAISE, 0);
-                audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 5, 0);
-             //   audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 5, 0);
+                //   audioManager.adjustVolume(AudioManager.ADJUST_RAISE, 0);
+                //   audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 5, 0);
+                int currentVolume = audioManager.getStreamVolume(targetStreamForVolumeChange);
+                int finalVolume = ( currentVolume + 1 ) % audioManager.getStreamMaxVolume(targetStreamForVolumeChange);
+                audioManager.setStreamVolume(targetStreamForVolumeChange, finalVolume, 0);
 
             }
         });
@@ -188,11 +182,16 @@ public class MainActivity extends AppCompatActivity{
         final Button buttonMinus = findViewById(R.id.button_minus);
         buttonMinus.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                // Code here executes on main thread after user presses button
-            //    audioManager.adjustVolume(AudioManager.ADJUST_LOWER, 0);
-                audioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, 1, 0);
-            //    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 1, 0);
-
+                //    audioManager.adjustVolume(AudioManager.ADJUST_LOWER, 0);
+                //    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 1, 0);
+                int currentVolume = audioManager.getStreamVolume(targetStreamForVolumeChange);
+                int finalVolume;
+                if(currentVolume > audioManager.getStreamMinVolume(targetStreamForVolumeChange) ) {
+                    finalVolume = currentVolume - 1;
+                } else {
+                    finalVolume = audioManager.getStreamMinVolume(targetStreamForVolumeChange);
+                }
+                audioManager.setStreamVolume(targetStreamForVolumeChange, finalVolume, 0);
             }
         });
 
@@ -285,6 +284,42 @@ public class MainActivity extends AppCompatActivity{
         super.onResume();
     }
 
+    public AudioTrack createAudioTrack(int usage, int contentType){
+//        int minBuffSize = AudioTrack.getMinBufferSize(44100, 4, 2);
+
+        return new AudioTrack.Builder()
+                .setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(usage)
+                        .setContentType(contentType)
+                        .build())
+                .setAudioFormat(new AudioFormat.Builder()
+                        .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                        .setSampleRate(16000)
+                        .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+                        .build())
+                .setTransferMode(AudioTrack.MODE_STREAM)
+                //   .setBufferSizeInBytes(minBuffSize)
+                .build();
+
+    }
+
+    public MediaPlayer createMediaPlayer(int usage, int contentType){
+        Uri uri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.greenday);
+        try {
+            MediaPlayer myMediaPlayer = new MediaPlayer();
+            myMediaPlayer.setDataSource(getApplicationContext(), uri);
+            myMediaPlayer.setAudioAttributes( new AudioAttributes.Builder()
+                .setUsage(usage)
+                .setContentType(contentType)
+                .build());
+            return myMediaPlayer;
+        } catch (IOException e) {
+            Log.d("1234", "error while creating media player");
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public static byte[] convertStreamToByteArray(InputStream is) throws IOException {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -296,11 +331,6 @@ public class MainActivity extends AppCompatActivity{
 
         return baos.toByteArray(); // be sure to close InputStream in calling function
     }
-/*
-    @Override
-    public void onAudioFocusChange(int focusChange){
-        Log.d("1234", "audiofocus change!");
-    }*/
 
 }
 
