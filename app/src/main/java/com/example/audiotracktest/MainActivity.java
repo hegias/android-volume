@@ -2,22 +2,14 @@ package com.example.audiotracktest;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
-import android.Manifest;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.database.ContentObserver;
 import android.media.AudioAttributes;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.media.audiofx.Equalizer;
-import android.media.session.MediaController;
-import android.media.session.MediaSessionManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -27,23 +19,23 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity{
 
-    public int createdAudioSessionId ;
+    public AudioManager audioManager ;
     public AudioTrack audioTrack = null;
     public int targetStreamForVolumeChange = 3;
+    public String curUsage, curContent, curURI;
     public Boolean isPlaying = false;
     public Thread playThread;
     public Button buttonPlayAudioTrack;
+    public TextView modeText, usageText, contentText, targetStreamText, streamMusicText, streamVoiceText, uriText;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,6 +46,15 @@ public class MainActivity extends AppCompatActivity{
     protected void onStart() {
         super.onStart();
 
+        // INIT TEXT fields
+        modeText = findViewById(R.id.modeText);
+        usageText = findViewById(R.id.usageText);
+        contentText = findViewById(R.id.contentText);
+        targetStreamText = findViewById(R.id.targetStreamText);
+        streamMusicText = findViewById(R.id.streamMusicText);
+        streamVoiceText = findViewById(R.id.streamVoiceText);
+        uriText = findViewById(R.id.uriText);
+
         // SETUP OBSERVER FOR VOLUME CHANGES
         ContentObserver observer = new ContentObserver(new Handler(Looper.myLooper())) {
             @Override
@@ -61,11 +62,9 @@ public class MainActivity extends AppCompatActivity{
                 super.onChange(selfChange, uri);
 
                 AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-
+                curURI = uri.toString();
                 Log.d("1234", "new ONCHANGE system settings " + uri.toString() + " current mode " + audioManager.getMode());
-                // Log.d("1234", "ONCHANGE stream MUSIC max " + audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) );
                 Log.d("1234", "ONCHANGE stream MUSIC current " + audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) );
-                // Log.d("1234", "ONCHANGE stream VOICe CALL max " + audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL) );
                 Log.d("1234", "ONCHANGE stream VOICe CALL current " + audioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL) );
                 Log.d("1234", "ONCHANGE stream STREAM_ACCESSIBILITY current " + audioManager.getStreamVolume(AudioManager.STREAM_ACCESSIBILITY) );
                 Log.d("1234", "ONCHANGE stream STREAM_ALARM current " + audioManager.getStreamVolume(AudioManager.STREAM_ALARM) );
@@ -73,33 +72,42 @@ public class MainActivity extends AppCompatActivity{
                 Log.d("1234", "ONCHANGE stream STREAM_NOTIFICATION current " + audioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION) );
                 Log.d("1234", "ONCHANGE stream STREAM_RING current " + audioManager.getStreamVolume(AudioManager.STREAM_RING) );
                 Log.d("1234", "ONCHANGE stream STREAM_SYSTEM current " + audioManager.getStreamVolume(AudioManager.STREAM_SYSTEM) );
+                updateReport();
             }
         };
         getApplicationContext().getContentResolver().registerContentObserver(Settings.System.CONTENT_URI, true, observer);
 
-        AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-       // setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
-       // audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-        audioManager.setMode(AudioManager.MODE_NORMAL);
+        audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        // setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
+        // audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+        // audioManager.setMode(AudioManager.MODE_NORMAL);
 
-        Log.d("1234", "stream control BEFORE "+ getVolumeControlStream());
-
-        Log.d("1234", "stream control AFTER "+ getVolumeControlStream());
-
+        Log.d("1234", "stream control "+ getVolumeControlStream());
         Log.d("1234", "volume fixed "+ audioManager.isVolumeFixed());
-        Log.d("1234", "mode "+ audioManager.getMode());
+        Log.d("1234", "starting mode "+ audioManager.getMode());
+        Log.d("1234", "please select MUSIC/CALL to setup audioManager and audioTrack. Then press play");
 
         final ToggleButton musicModeToggle = findViewById(R.id.musicMode_toggle);
         final ToggleButton callModeToggle = findViewById(R.id.callMode_toggle);
+        final ToggleButton musicStreamToggle = findViewById(R.id.selectMusicStream_toggle);
+        final ToggleButton callStreamToggle = findViewById(R.id.selectCallStream_toggle);
 
         musicModeToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     callModeToggle.setChecked(false);
+                    if(isPlaying){
+                        audioTrack.stop();
+                        isPlaying = false;
+                        playThread.interrupt();
+                        buttonPlayAudioTrack.setText("PLAY\nAUDIOTRACK");
+                    }
                     audioTrack = createAudioTrack(AudioAttributes.USAGE_MEDIA, AudioAttributes.CONTENT_TYPE_MUSIC);
                     audioManager.setMode(AudioManager.MODE_NORMAL);
                     targetStreamForVolumeChange = AudioManager.STREAM_MUSIC;
+                    musicStreamToggle.setChecked(true);
+                    updateReport();
                 }
             }
         });
@@ -108,13 +116,41 @@ public class MainActivity extends AppCompatActivity{
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     musicModeToggle.setChecked(false);
+                    if(isPlaying){
+                        audioTrack.stop();
+                        isPlaying = false;
+                        playThread.interrupt();
+                        buttonPlayAudioTrack.setText("PLAY\nAUDIOTRACK");
+                    }
                     audioTrack = createAudioTrack(AudioAttributes.USAGE_VOICE_COMMUNICATION, AudioAttributes.CONTENT_TYPE_SPEECH);
                     audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
                     targetStreamForVolumeChange = AudioManager.STREAM_VOICE_CALL;
+                    callStreamToggle.setChecked(true);
+                    updateReport();
                 }
             }
         });
 
+        musicStreamToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked) {
+                    callStreamToggle.setChecked(false);
+                    targetStreamForVolumeChange = AudioManager.STREAM_MUSIC;
+                    updateReport();
+                }
+            }
+        });
+        callStreamToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked) {
+                    musicStreamToggle.setChecked(false);
+                    targetStreamForVolumeChange = AudioManager.STREAM_VOICE_CALL;
+                    updateReport();
+                }
+            }
+        });
 
         buttonPlayAudioTrack = findViewById(R.id.button_play);
         buttonPlayAudioTrack.setOnClickListener(new View.OnClickListener() {
@@ -160,6 +196,7 @@ public class MainActivity extends AppCompatActivity{
             public void onClick(View v) {
                 //   audioManager.adjustVolume(AudioManager.ADJUST_RAISE, 0);
                 //   audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 5, 0);
+                Log.d("1234", "current stream for volume change is " + targetStreamForVolumeChange +  " max is " +  audioManager.getStreamMaxVolume(targetStreamForVolumeChange));
                 int currentVolume = audioManager.getStreamVolume(targetStreamForVolumeChange);
                 int finalVolume;
                 if (currentVolume < audioManager.getStreamMaxVolume(targetStreamForVolumeChange)) {
@@ -167,8 +204,9 @@ public class MainActivity extends AppCompatActivity{
                 } else {
                     finalVolume = audioManager.getStreamVolume(targetStreamForVolumeChange);
                 }
+                Log.d("1234", "setting volume for stream " + targetStreamForVolumeChange + " to " + finalVolume);
                 audioManager.setStreamVolume(targetStreamForVolumeChange, finalVolume, 0);
-
+                updateReport();
             }
         });
 
@@ -177,6 +215,7 @@ public class MainActivity extends AppCompatActivity{
             public void onClick(View v) {
                 //    audioManager.adjustVolume(AudioManager.ADJUST_LOWER, 0);
                 //    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 1, 0);
+                Log.d("1234", "current stream for volume change is " + targetStreamForVolumeChange +  " min is " +  audioManager.getStreamMinVolume(targetStreamForVolumeChange));
                 int currentVolume = audioManager.getStreamVolume(targetStreamForVolumeChange);
                 int finalVolume;
                 if(currentVolume > audioManager.getStreamMinVolume(targetStreamForVolumeChange) ) {
@@ -184,7 +223,9 @@ public class MainActivity extends AppCompatActivity{
                 } else {
                     finalVolume = audioManager.getStreamMinVolume(targetStreamForVolumeChange);
                 }
+                Log.d("1234", "setting volume for stream " + targetStreamForVolumeChange + " to " + finalVolume);
                 audioManager.setStreamVolume(targetStreamForVolumeChange, finalVolume, 0);
+                updateReport();
             }
         });
 
@@ -198,7 +239,16 @@ public class MainActivity extends AppCompatActivity{
 
     public AudioTrack createAudioTrack(int usage, int contentType){
 //        int minBuffSize = AudioTrack.getMinBufferSize(44100, 4, 2);
-
+        if(usage == AudioAttributes.USAGE_MEDIA){
+            curUsage = "media";
+        } else if (usage == AudioAttributes.USAGE_VOICE_COMMUNICATION){
+            curUsage = "communication";
+        }
+        if(contentType == AudioAttributes.CONTENT_TYPE_MUSIC){
+            curContent = "music";
+        } else if (contentType == AudioAttributes.CONTENT_TYPE_SPEECH){
+            curContent = "speech";
+        }
         return new AudioTrack.Builder()
                 .setAudioAttributes(new AudioAttributes.Builder()
                         .setUsage(usage)
@@ -224,6 +274,18 @@ public class MainActivity extends AppCompatActivity{
         }
 
         return baos.toByteArray(); // be sure to close InputStream in calling function
+    }
+
+    public void updateReport(){
+        modeText.setText(((Integer) audioManager.getMode()).toString());
+        usageText.setText(curUsage);
+        contentText.setText(curContent);
+        targetStreamText.setText(((Integer) targetStreamForVolumeChange).toString());
+        streamMusicText.setText(((Integer) audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)).toString());
+        streamVoiceText.setText(((Integer) audioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL)).toString());
+        uriText.setText(curURI);
+
+        return;
     }
 
 }
